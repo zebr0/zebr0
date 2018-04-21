@@ -1,0 +1,1 @@
+import pprintimport blaimport boto3session = boto3.Session()ec2_client = session.client("ec2")response = ec2_client.describe_images(**bla.describe_images_requests_map["ubuntu-xenial"])pprint.pprint(response)
