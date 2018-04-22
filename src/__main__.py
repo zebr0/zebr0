@@ -1,1 +1,1 @@
-import pprintimport ec2if __name__ == "__main__":    response = ec2.latest_image("ubuntu-xenial")    pprint.pprint(response)
+import ec2if __name__ == "__main__":    image_id = ec2.fetch_latest_image_id("ubuntu-xenial")    print(image_id)
