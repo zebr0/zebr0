@@ -1,1 +1,1 @@
-import ec2if __name__ == "__main__":    image_id = ec2.fetch_latest_image_id("ubuntu-xenial")    print(image_id)
+import ec2if __name__ == "__main__":    ec2.run_instance()
