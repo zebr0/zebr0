@@ -15,11 +15,11 @@ def fetch_latest_image_id(distribution: str) -> str:
                           "Owners": ["099720109477"]}
     }
 
-    response = client.describe_images(**request[distribution])
-    images = response["Images"]
-    images.sort(key=lambda image: image["CreationDate"], reverse=True)
+    response = client.describe_images(**request.get(distribution))
+    images = response.get("Images")
+    images.sort(key=lambda image: image.get("CreationDate"), reverse=True)
     latest = images[0]
-    return latest["ImageId"]
+    return latest.get("ImageId")
 
 
 def run_instance():
