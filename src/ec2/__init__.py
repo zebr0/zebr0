@@ -2,6 +2,8 @@ import pprint
 
 import boto3
 
+import config
+
 client = boto3.client("ec2")
 
 
@@ -22,13 +24,13 @@ def fetch_latest_image_id(distribution: str) -> str:
     return latest.get("ImageId")
 
 
-def run_instance():
+def run_instance(project: str, stage: str):
     request = {
-        "ImageId": fetch_latest_image_id("ubuntu-bionic"),
+        "ImageId": fetch_latest_image_id(config.fetch_distribution(project)),
         "MinCount": 1,
         "MaxCount": 1,
         "KeyName": "keypair",
-        "InstanceType": "t2.micro"
+        "InstanceType": config.fetch_instance_type(project, stage)
     }
 
     response = client.run_instances(**request)

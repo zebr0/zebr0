@@ -1,1 +1,1 @@
-import ec2if __name__ == "__main__":    ec2.run_instance()
+import ec2if __name__ == "__main__":    ec2.run_instance("gitlab", "master")
