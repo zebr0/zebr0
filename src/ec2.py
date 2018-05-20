@@ -32,6 +32,13 @@ def run_instance(project: str, stage: str):
         "KeyName": "keypair",
         "InstanceType": config.fetch_instance_type(project, stage)
     }
-
     response = client.run_instances(**request)
+    pprint.pprint(response)
+
+    request = {
+        "Resources": [response.get("Instances")[0].get("InstanceId")],
+        "Tags": [{"Key": "project", "Value": project},
+                 {"Key": "stage", "Value": stage}]
+    }
+    response = client.create_tags(**request)
     pprint.pprint(response)
