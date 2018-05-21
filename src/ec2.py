@@ -25,17 +25,36 @@ def fetch_latest_image_id(distribution: str) -> str:
 
 
 def init_environment(project: str, stage: str):
+    create_vpc_if_needed(project, stage)
     create_instance_if_needed(project, stage)
 
 
+def create_vpc_if_needed(project, stage):
+    request = {"Filters": [{"Name": "tag:project", "Values": [project]},
+                           {"Name": "tag:stage", "Values": [stage]}]}
+    response = client.describe_vpcs(**request)
+    pprint.pprint(response)
+
+    if not response.get("Vpcs"):
+        request = {
+            "CidrBlock": config.fetch_network_cidr(project, stage)
+        }
+        response = client.create_vpc(**request)
+        pprint.pprint(response)
+
+        request = {
+            "Resources": [response.get("Vpc").get("VpcId")],
+            "Tags": [{"Key": "project", "Value": project},
+                     {"Key": "stage", "Value": stage}]
+        }
+        response = client.create_tags(**request)
+        pprint.pprint(response)
+
+
 def create_instance_if_needed(project, stage):
-    request = {
-        "Filters": [
-            {"Name": "tag:project", "Values": [project]},
-            {"Name": "tag:stage", "Values": [stage]},
-            {"Name": "instance-state-name", "Values": ["pending", "running", "stopping", "stopped"]}
-        ]
-    }
+    request = {"Filters": [{"Name": "tag:project", "Values": [project]},
+                           {"Name": "tag:stage", "Values": [stage]},
+                           {"Name": "instance-state-name", "Values": ["pending", "running", "stopping", "stopped"]}]}
     response = client.describe_instances(**request)
     pprint.pprint(response)
 
