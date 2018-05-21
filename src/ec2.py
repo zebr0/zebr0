@@ -24,21 +24,36 @@ def fetch_latest_image_id(distribution: str) -> str:
     return latest.get("ImageId")
 
 
-def run_instance(project: str, stage: str):
+def init_environment(project: str, stage: str):
+    create_instance_if_needed(project, stage)
+
+
+def create_instance_if_needed(project, stage):
     request = {
-        "ImageId": fetch_latest_image_id(config.fetch_distribution(project)),
-        "MinCount": 1,
-        "MaxCount": 1,
-        "KeyName": "keypair",
-        "InstanceType": config.fetch_instance_type(project, stage)
+        "Filters": [
+            {"Name": "tag:project", "Values": [project]},
+            {"Name": "tag:stage", "Values": [stage]},
+            {"Name": "instance-state-name", "Values": ["pending", "running", "stopping", "stopped"]}
+        ]
     }
-    response = client.run_instances(**request)
+    response = client.describe_instances(**request)
     pprint.pprint(response)
 
-    request = {
-        "Resources": [response.get("Instances")[0].get("InstanceId")],
-        "Tags": [{"Key": "project", "Value": project},
-                 {"Key": "stage", "Value": stage}]
-    }
-    response = client.create_tags(**request)
-    pprint.pprint(response)
+    if not response.get("Reservations"):
+        request = {
+            "ImageId": fetch_latest_image_id(config.fetch_distribution(project)),
+            "MinCount": 1,
+            "MaxCount": 1,
+            "KeyName": "keypair",
+            "InstanceType": config.fetch_instance_type(project, stage)
+        }
+        response = client.run_instances(**request)
+        pprint.pprint(response)
+
+        request = {
+            "Resources": [response.get("Instances")[0].get("InstanceId")],
+            "Tags": [{"Key": "project", "Value": project},
+                     {"Key": "stage", "Value": stage}]
+        }
+        response = client.create_tags(**request)
+        pprint.pprint(response)
