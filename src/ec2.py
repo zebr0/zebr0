@@ -12,20 +12,33 @@ def init_environment(project: str, stage: str):
     create_instance_if_needed(project, stage)
 
 
-def create_vpc_if_needed(project, stage):
+def create_vpc_if_needed(project: str, stage: str) -> str:
+    print("checking vpc")
     request = {"Filters": [{"Name": "tag:project", "Values": [project]},
                            {"Name": "tag:stage", "Values": [stage]}]}
     response = client.describe_vpcs(**request)
-    pprint.pprint(response)
 
     if not response.get("Vpcs"):
+        print("vpc not found, creating vpc")
+        network_cidr = config.fetch_network_cidr(project, stage)
         request = {
-            "CidrBlock": config.fetch_network_cidr(project, stage)
+            "CidrBlock": network_cidr
         }
         response = client.create_vpc(**request)
-        pprint.pprint(response)
+        vpc_id = response.get("Vpc").get("VpcId")
+        client.get_waiter('vpc_exists').wait(VpcIds=[vpc_id])
+        create_tags(project, stage, vpc_id)
 
-        create_tags(project, stage, response.get("Vpc").get("VpcId"))
+        print("creating subnet")
+        request = {
+            "CidrBlock": network_cidr,
+            "VpcId": vpc_id
+        }
+        response = client.create_subnet(**request)
+        subnet_id = response.get("Subnet").get("SubnetId")
+        create_tags(project, stage, subnet_id)
+
+        return subnet_id
 
 
 def create_instance_if_needed(project, stage):
