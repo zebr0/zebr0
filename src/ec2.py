@@ -7,8 +7,8 @@ client = boto3.client("ec2")
 
 def init_environment(project: str, stage: str):
     vpc_id = create_vpc_if_needed(project, stage)
-    create_subnet_if_needed(project, stage, vpc_id)
-    create_instance_if_needed(project, stage)
+    subnet_id = create_subnet_if_needed(project, stage, vpc_id)
+    create_instance_if_needed(project, stage, subnet_id)
 
 
 def create_vpc_if_needed(project: str, stage: str) -> str:
@@ -48,7 +48,7 @@ def create_subnet_if_needed(project: str, stage: str, vpc_id: str) -> str:
         return describe_subnets.get("Subnets")[0].get("SubnetId")
 
 
-def create_instance_if_needed(project: str, stage: str) -> str:
+def create_instance_if_needed(project: str, stage: str, subnet_id: str) -> str:
     print("checking instance")
     describe_instances = client.describe_instances(
         Filters=[{"Name": "tag:project", "Values": [project]},
@@ -63,7 +63,8 @@ def create_instance_if_needed(project: str, stage: str) -> str:
             MinCount=1,
             MaxCount=1,
             KeyName="keypair",
-            InstanceType=config.fetch_instance_type(project, stage)
+            InstanceType=config.fetch_instance_type(project, stage),
+            SubnetId=subnet_id
         )
         instance_id = run_instances.get("Instances")[0].get("InstanceId")
         create_tags(project, stage, instance_id)
