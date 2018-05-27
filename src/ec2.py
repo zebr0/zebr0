@@ -8,7 +8,7 @@ client = boto3.client("ec2")
 def init_environment(project: str, stage: str):
     vpc_id = create_vpc_if_needed(project, stage)
     subnet_id = create_subnet_if_needed(project, stage, vpc_id)
-    create_instance_if_needed(project, stage, subnet_id)
+    instance_id = create_instance_if_needed(project, stage, subnet_id)
 
 
 def create_vpc_if_needed(project: str, stage: str) -> str:
@@ -62,14 +62,15 @@ def create_instance_if_needed(project: str, stage: str, subnet_id: str) -> str:
             ImageId=fetch_latest_image_id(config.fetch_distribution(project)),
             MinCount=1,
             MaxCount=1,
-            KeyName="keypair",
+            KeyName="keypair",  # TODO
             InstanceType=config.fetch_instance_type(project, stage),
             SubnetId=subnet_id
         )
         instance_id = run_instances.get("Instances")[0].get("InstanceId")
         create_tags(project, stage, instance_id)
-
         return instance_id
+    else:
+        return describe_instances.get("Reservations")[0].get("Instances")[0].get("InstanceId")
 
 
 def create_tags(project: str, stage: str, resource_id: str):
