@@ -5,10 +5,10 @@ import config
 client = boto3.client("ec2")
 
 
-def init_environment(project: str, stage: str):
-    vpc_id = create_vpc_if_needed(project, stage)
-    subnet_id = create_subnet_if_needed(project, stage, vpc_id)
-    instance_id = create_instance_if_needed(project, stage, subnet_id)
+def init_environment(args):
+    vpc_id = create_vpc_if_needed(args.project, args.stage)
+    subnet_id = create_subnet_if_needed(args.project, args.stage, vpc_id)
+    instance_id = create_instance_if_needed(args.project, args.stage, subnet_id)
 
 
 def create_vpc_if_needed(project: str, stage: str) -> str:
@@ -97,3 +97,7 @@ def fetch_latest_image_id(distribution: str) -> str:
     images.sort(key=lambda image: image.get("CreationDate"), reverse=True)
     latest = images[0]
     return latest.get("ImageId")
+
+
+def destroy_environment(args):
+    pass
