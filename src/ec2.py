@@ -12,13 +12,9 @@ def init_environment(args):
 
 
 def create_vpc_if_needed(project: str, stage: str) -> str:
-    print("checking vpc")
-    describe_vpcs = client.describe_vpcs(
-        Filters=[{"Name": "tag:project", "Values": [project]},
-                 {"Name": "tag:stage", "Values": [stage]}]
-    )
+    vpc = describe_vpc(project, stage)
 
-    if not describe_vpcs.get("Vpcs"):
+    if not vpc:
         print("vpc not found, creating vpc")
         network_cidr = config.fetch_network_cidr(project, stage)
         create_vpc = client.create_vpc(CidrBlock=network_cidr)
@@ -27,17 +23,24 @@ def create_vpc_if_needed(project: str, stage: str) -> str:
         create_tags(project, stage, vpc_id)
         return vpc_id
     else:
-        return describe_vpcs.get("Vpcs")[0].get("VpcId")
+        return vpc.get("VpcId")
+
+
+def describe_vpc(project: str, stage: str) -> {}:
+    print("checking vpc")
+
+    vpcs = client.describe_vpcs(
+        Filters=[{"Name": "tag:project", "Values": [project]},
+                 {"Name": "tag:stage", "Values": [stage]}]
+    ).get("Vpcs")
+
+    return vpcs[0] if vpcs else None
 
 
 def create_subnet_if_needed(project: str, stage: str, vpc_id: str) -> str:
-    print("checking subnet")
-    describe_subnets = client.describe_subnets(
-        Filters=[{"Name": "tag:project", "Values": [project]},
-                 {"Name": "tag:stage", "Values": [stage]}]
-    )
+    subnet = describe_subnet(project, stage)
 
-    if not describe_subnets.get("Subnets"):
+    if not subnet:
         print("subnet not found, creating subnet")
         network_cidr = config.fetch_network_cidr(project, stage)
         create_subnet = client.create_subnet(CidrBlock=network_cidr, VpcId=vpc_id)
@@ -45,7 +48,18 @@ def create_subnet_if_needed(project: str, stage: str, vpc_id: str) -> str:
         create_tags(project, stage, subnet_id)
         return subnet_id
     else:
-        return describe_subnets.get("Subnets")[0].get("SubnetId")
+        return subnet.get("SubnetId")
+
+
+def describe_subnet(project, stage):
+    print("checking subnet")
+
+    subnets = client.describe_subnets(
+        Filters=[{"Name": "tag:project", "Values": [project]},
+                 {"Name": "tag:stage", "Values": [stage]}]
+    ).get("Subnets")
+
+    return subnets[0] if subnets else None
 
 
 def create_instance_if_needed(project: str, stage: str, subnet_id: str) -> str:
@@ -108,6 +122,7 @@ def fetch_latest_image_id(distribution: str) -> str:
 
 def destroy_environment(args):
     destroy_instance_if_needed(args.project, args.stage)
+    destroy_subnet_if_needed(args.project, args.stage)
     destroy_vpc_if_needed(args.project, args.stage)
 
 
@@ -120,5 +135,15 @@ def destroy_instance_if_needed(project, stage):
         client.get_waiter('instance_terminated').wait(**instance_ids)
 
 
+def destroy_subnet_if_needed(project, stage):
+    subnet = describe_subnet(project, stage)
+    if subnet:
+        print("subnet found, destroying subnet")
+        client.delete_subnet(SubnetId=subnet.get("SubnetId"))
+
+
 def destroy_vpc_if_needed(project, stage):
-    pass
+    vpc = describe_vpc(project, stage)
+    if vpc:
+        print("vpc found, destroying vpc")
+        client.delete_vpc(VpcId=vpc.get("VpcId"))
