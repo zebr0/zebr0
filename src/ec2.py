@@ -61,14 +61,6 @@ def describe_address(project, stage):
     return addresses[0] if addresses else None
 
 
-def init_environment(args):
-    vpc_id = create_vpc_if_needed(args.project, args.stage)
-    subnet_id = create_subnet_if_needed(args.project, args.stage, vpc_id)
-    instance_id = create_instance_if_needed(args.project, args.stage, subnet_id)
-    create_internet_gateway_if_needed(args.project, args.stage, vpc_id)
-    create_address_if_needed(args.project, args.stage, instance_id)
-
-
 def create_vpc_if_needed(project, stage):
     vpc = describe_vpc(project, stage)
 
@@ -170,14 +162,6 @@ def fetch_latest_image_id(distribution):
     images.sort(key=lambda image: image.get("CreationDate"), reverse=True)
     latest = images[0]
     return latest.get("ImageId")
-
-
-def destroy_environment(args):
-    destroy_address_if_needed(args.project, args.stage)
-    destroy_internet_gateway_if_needed(args.project, args.stage)
-    destroy_instance_if_needed(args.project, args.stage)
-    destroy_subnet_if_needed(args.project, args.stage)
-    destroy_vpc_if_needed(args.project, args.stage)
 
 
 def destroy_address_if_needed(project, stage):
