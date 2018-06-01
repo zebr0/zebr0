@@ -5,7 +5,7 @@ import config
 client = boto3.client("ec2")
 
 
-def describe_vpc(project: str, stage: str) -> {}:
+def describe_vpc(project, stage):
     print("checking vpc")
 
     vpcs = client.describe_vpcs(
@@ -27,7 +27,7 @@ def describe_subnet(project, stage):
     return subnets[0] if subnets else None
 
 
-def describe_instance(project: str, stage: str) -> {}:
+def describe_instance(project, stage):
     print("checking instance")
 
     reservations = client.describe_instances(
@@ -45,7 +45,7 @@ def init_environment(args):
     instance_id = create_instance_if_needed(args.project, args.stage, subnet_id)
 
 
-def create_vpc_if_needed(project: str, stage: str) -> str:
+def create_vpc_if_needed(project, stage):
     vpc = describe_vpc(project, stage)
 
     if not vpc:
@@ -60,7 +60,7 @@ def create_vpc_if_needed(project: str, stage: str) -> str:
         return vpc.get("VpcId")
 
 
-def create_subnet_if_needed(project: str, stage: str, vpc_id: str) -> str:
+def create_subnet_if_needed(project, stage, vpc_id):
     subnet = describe_subnet(project, stage)
 
     if not subnet:
@@ -74,7 +74,7 @@ def create_subnet_if_needed(project: str, stage: str, vpc_id: str) -> str:
         return subnet.get("SubnetId")
 
 
-def create_instance_if_needed(project: str, stage: str, subnet_id: str) -> str:
+def create_instance_if_needed(project, stage, subnet_id):
     instance = describe_instance(project, stage)
 
     if not instance:
@@ -94,7 +94,7 @@ def create_instance_if_needed(project: str, stage: str, subnet_id: str) -> str:
         return instance.get("InstanceId")
 
 
-def create_tags(project: str, stage: str, resource_id: str):
+def create_tags(project, stage, resource_id):
     print("updating tags")
     client.create_tags(
         Resources=[resource_id],
@@ -103,7 +103,7 @@ def create_tags(project: str, stage: str, resource_id: str):
     )
 
 
-def fetch_latest_image_id(distribution: str) -> str:
+def fetch_latest_image_id(distribution):
     request = {
         "ubuntu-xenial": {"Filters": [{"Name": "name",
                                        "Values": ["ubuntu/images/hvm-ssd/ubuntu-xenial-*"]}],
