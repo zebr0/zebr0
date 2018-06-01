@@ -5,6 +5,40 @@ import config
 client = boto3.client("ec2")
 
 
+def describe_vpc(project: str, stage: str) -> {}:
+    print("checking vpc")
+
+    vpcs = client.describe_vpcs(
+        Filters=[{"Name": "tag:project", "Values": [project]},
+                 {"Name": "tag:stage", "Values": [stage]}]
+    ).get("Vpcs")
+
+    return vpcs[0] if vpcs else None
+
+
+def describe_subnet(project, stage):
+    print("checking subnet")
+
+    subnets = client.describe_subnets(
+        Filters=[{"Name": "tag:project", "Values": [project]},
+                 {"Name": "tag:stage", "Values": [stage]}]
+    ).get("Subnets")
+
+    return subnets[0] if subnets else None
+
+
+def describe_instance(project: str, stage: str) -> {}:
+    print("checking instance")
+
+    reservations = client.describe_instances(
+        Filters=[{"Name": "tag:project", "Values": [project]},
+                 {"Name": "tag:stage", "Values": [stage]},
+                 {"Name": "instance-state-name", "Values": ["pending", "running", "stopping", "stopped"]}]
+    ).get("Reservations")
+
+    return reservations[0].get("Instances")[0] if reservations else None
+
+
 def init_environment(args):
     vpc_id = create_vpc_if_needed(args.project, args.stage)
     subnet_id = create_subnet_if_needed(args.project, args.stage, vpc_id)
@@ -26,17 +60,6 @@ def create_vpc_if_needed(project: str, stage: str) -> str:
         return vpc.get("VpcId")
 
 
-def describe_vpc(project: str, stage: str) -> {}:
-    print("checking vpc")
-
-    vpcs = client.describe_vpcs(
-        Filters=[{"Name": "tag:project", "Values": [project]},
-                 {"Name": "tag:stage", "Values": [stage]}]
-    ).get("Vpcs")
-
-    return vpcs[0] if vpcs else None
-
-
 def create_subnet_if_needed(project: str, stage: str, vpc_id: str) -> str:
     subnet = describe_subnet(project, stage)
 
@@ -49,17 +72,6 @@ def create_subnet_if_needed(project: str, stage: str, vpc_id: str) -> str:
         return subnet_id
     else:
         return subnet.get("SubnetId")
-
-
-def describe_subnet(project, stage):
-    print("checking subnet")
-
-    subnets = client.describe_subnets(
-        Filters=[{"Name": "tag:project", "Values": [project]},
-                 {"Name": "tag:stage", "Values": [stage]}]
-    ).get("Subnets")
-
-    return subnets[0] if subnets else None
 
 
 def create_instance_if_needed(project: str, stage: str, subnet_id: str) -> str:
@@ -80,18 +92,6 @@ def create_instance_if_needed(project: str, stage: str, subnet_id: str) -> str:
         return instance_id
     else:
         return instance.get("InstanceId")
-
-
-def describe_instance(project: str, stage: str) -> {}:
-    print("checking instance")
-
-    reservations = client.describe_instances(
-        Filters=[{"Name": "tag:project", "Values": [project]},
-                 {"Name": "tag:stage", "Values": [stage]},
-                 {"Name": "instance-state-name", "Values": ["pending", "running", "stopping", "stopped"]}]
-    ).get("Reservations")
-
-    return reservations[0].get("Instances")[0] if reservations else None
 
 
 def create_tags(project: str, stage: str, resource_id: str):
