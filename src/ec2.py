@@ -49,14 +49,9 @@ def create_subnet_if_needed(project: str, stage: str, vpc_id: str) -> str:
 
 
 def create_instance_if_needed(project: str, stage: str, subnet_id: str) -> str:
-    print("checking instance")
-    describe_instances = client.describe_instances(
-        Filters=[{"Name": "tag:project", "Values": [project]},
-                 {"Name": "tag:stage", "Values": [stage]},
-                 {"Name": "instance-state-name", "Values": ["pending", "running", "stopping", "stopped"]}]
-    )
+    instance = describe_instance(project, stage)
 
-    if not describe_instances.get("Reservations"):
+    if not instance:
         print("instance not found, creating instance")
         run_instances = client.run_instances(
             ImageId=fetch_latest_image_id(config.fetch_distribution(project)),
@@ -70,7 +65,19 @@ def create_instance_if_needed(project: str, stage: str, subnet_id: str) -> str:
         create_tags(project, stage, instance_id)
         return instance_id
     else:
-        return describe_instances.get("Reservations")[0].get("Instances")[0].get("InstanceId")
+        return instance.get("InstanceId")
+
+
+def describe_instance(project: str, stage: str) -> {}:
+    print("checking instance")
+
+    reservations = client.describe_instances(
+        Filters=[{"Name": "tag:project", "Values": [project]},
+                 {"Name": "tag:stage", "Values": [stage]},
+                 {"Name": "instance-state-name", "Values": ["pending", "running", "stopping", "stopped"]}]
+    ).get("Reservations")
+
+    return reservations[0].get("Instances")[0] if reservations else None
 
 
 def create_tags(project: str, stage: str, resource_id: str):
@@ -100,4 +107,18 @@ def fetch_latest_image_id(distribution: str) -> str:
 
 
 def destroy_environment(args):
+    destroy_instance_if_needed(args.project, args.stage)
+    destroy_vpc_if_needed(args.project, args.stage)
+
+
+def destroy_instance_if_needed(project, stage):
+    instance = describe_instance(project, stage)
+    if instance:
+        print("instance found, destroying instance")
+        instance_ids = {"InstanceIds": [instance.get("InstanceId")]}
+        client.terminate_instances(**instance_ids)
+        client.get_waiter('instance_terminated').wait(**instance_ids)
+
+
+def destroy_vpc_if_needed(project, stage):
     pass
