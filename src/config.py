@@ -21,6 +21,10 @@ def fetch_network_cidr(project, stage):
     return _fetch(project, stage, "network-cidr", default="192.168.0.0/24")
 
 
+def fetch_domain_name():
+    return _fetch("domain-name", default=None)
+
+
 def _fetch(*args, default):
     key = "/".join(args)
     response = requests.get(base_url + "/" + key)
