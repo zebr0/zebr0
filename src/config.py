@@ -1,4 +1,5 @@
 import configparser
+import subprocess
 
 import requests
 
@@ -28,3 +29,13 @@ def _fetch(*args, default):
     else:
         print("missing key:", key)
         return default
+
+
+def edit_config(filename):
+    parser["config"] = {
+        "base_url": base_url
+    }
+
+    with open(filename, "w") as file:
+        parser.write(file)
+    subprocess.call(["/usr/bin/editor", filename])
