@@ -90,6 +90,19 @@ def create_subnet_if_needed(project, stage, vpc_id):
         return subnet.get("SubnetId")
 
 
+def create_internet_gateway_if_needed(project, stage, vpc_id):
+    internet_gateway = describe_internet_gateway(project, stage)
+
+    if not internet_gateway:
+        print("internet gateway not found, creating internet gateway")
+        internet_gateway_id = client.create_internet_gateway().get("InternetGateway").get("InternetGatewayId")
+        create_tags(project, stage, internet_gateway_id)
+        client.attach_internet_gateway(InternetGatewayId=internet_gateway_id, VpcId=vpc_id)
+
+        route_tables = client.describe_route_tables(Filters=[{"Name": "vpc-id", "Values": [vpc_id]}]).get("RouteTables")
+        client.create_route(DestinationCidrBlock="0.0.0.0/0", GatewayId=internet_gateway_id, RouteTableId=route_tables[0].get("RouteTableId"))
+
+
 def create_instance_if_needed(project, stage, subnet_id):
     instance = describe_instance(project, stage)
 
@@ -109,19 +122,6 @@ def create_instance_if_needed(project, stage, subnet_id):
         return instance_id
     else:
         return instance.get("InstanceId")
-
-
-def create_internet_gateway_if_needed(project, stage, vpc_id):
-    internet_gateway = describe_internet_gateway(project, stage)
-
-    if not internet_gateway:
-        print("internet gateway not found, creating internet gateway")
-        internet_gateway_id = client.create_internet_gateway().get("InternetGateway").get("InternetGatewayId")
-        create_tags(project, stage, internet_gateway_id)
-        client.attach_internet_gateway(InternetGatewayId=internet_gateway_id, VpcId=vpc_id)
-        return internet_gateway_id
-    else:
-        return internet_gateway.get("InternetGatewayId")
 
 
 def create_address_if_needed(project, stage, instance_id):
@@ -172,6 +172,15 @@ def destroy_address_if_needed(project, stage):
         client.release_address(AllocationId=address.get("AllocationId"))
 
 
+def destroy_instance_if_needed(project, stage):
+    instance = describe_instance(project, stage)
+    if instance:
+        print("instance found, destroying instance")
+        instance_ids = {"InstanceIds": [instance.get("InstanceId")]}
+        client.terminate_instances(**instance_ids)
+        client.get_waiter("instance_terminated").wait(**instance_ids)
+
+
 def destroy_internet_gateway_if_needed(project, stage):
     internet_gateway = describe_internet_gateway(project, stage)
     if internet_gateway:
@@ -182,15 +191,6 @@ def destroy_internet_gateway_if_needed(project, stage):
             VpcId=internet_gateway.get("Attachments")[0].get("VpcId")
         )
         client.delete_internet_gateway(InternetGatewayId=internet_gateway_id)
-
-
-def destroy_instance_if_needed(project, stage):
-    instance = describe_instance(project, stage)
-    if instance:
-        print("instance found, destroying instance")
-        instance_ids = {"InstanceIds": [instance.get("InstanceId")]}
-        client.terminate_instances(**instance_ids)
-        client.get_waiter("instance_terminated").wait(**instance_ids)
 
 
 def destroy_subnet_if_needed(project, stage):
