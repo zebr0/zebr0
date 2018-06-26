@@ -20,6 +20,7 @@ def create_dns_entry_if_needed(project, stage, address):
     resource_record_set = fetch_resource_record_set(hosted_zone_id, fqdn)
 
     if not resource_record_set:
+        print("resource record set not found, creating resource record set")
         client.change_resource_record_sets(
             HostedZoneId=hosted_zone_id,
             ChangeBatch={"Changes": [{
@@ -47,6 +48,7 @@ def destroy_dns_entry_if_needed(project, stage):
     resource_record_set = fetch_resource_record_set(hosted_zone_id, fqdn)
 
     if resource_record_set:
+        print("resource record set found, destroying resource record set")
         client.change_resource_record_sets(
             HostedZoneId=hosted_zone_id,
             ChangeBatch={"Changes": [{
@@ -69,6 +71,8 @@ def fetch_fqdn(project, stage, domain_name):
 
 
 def fetch_resource_record_set(hosted_zone_id, fqdn):
+    print("checking resource record set")
+
     resource_record_sets = client.list_resource_record_sets(
         HostedZoneId=hosted_zone_id,
         StartRecordName=fqdn,
