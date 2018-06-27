@@ -71,6 +71,18 @@ def create_vpc_if_needed(project, stage):
         vpc_id = create_vpc.get("Vpc").get("VpcId")
         client.get_waiter("vpc_exists").wait(VpcIds=[vpc_id])
         create_tags(project, stage, vpc_id)
+
+        security_groups = client.describe_security_groups(Filters=[{"Name": "vpc-id", "Values": [vpc_id]}]).get("SecurityGroups")
+        client.authorize_security_group_ingress(
+            GroupId=security_groups[0].get("GroupId"),
+            IpPermissions=[
+                {"FromPort": 80, "ToPort": 80, "IpProtocol": "tcp", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]},
+                {"FromPort": 443, "ToPort": 443, "IpProtocol": "tcp", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]},
+                {"FromPort": -1, "ToPort": -1, "IpProtocol": "icmp", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]},
+                {"FromPort": 22, "ToPort": 22, "IpProtocol": "tcp", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}  # TODO
+            ]
+        )
+
         return vpc_id
     else:
         return vpc.get("VpcId")
