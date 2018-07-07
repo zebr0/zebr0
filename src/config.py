@@ -3,8 +3,11 @@ import subprocess
 
 import requests
 
+default_filename = "zebr0-aws.conf"
+default_path = "/etc/" + default_filename
+
 parser = configparser.ConfigParser()
-parser.read(["/etc/zebr0.conf", "zebr0.conf"])
+parser.read([default_path, default_filename])
 
 base_url = parser.get("config", "base_url", fallback="https://raw.githubusercontent.com/zebr0/zebr0-files/master")
 
