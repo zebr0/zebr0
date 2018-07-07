@@ -10,6 +10,8 @@ parser = configparser.ConfigParser()
 parser.read([default_path, default_filename])
 
 base_url = parser.get("config", "base_url", fallback="https://raw.githubusercontent.com/zebr0/zebr0-files/master")
+access_key_id = parser.get("config", "access_key_id", fallback="")
+secret_access_key = parser.get("config", "secret_access_key", fallback="")
 
 
 def fetch_distribution(project):
@@ -36,7 +38,9 @@ def fetch(*args, default=None):
 
 def edit_config(filename):
     parser["config"] = {
-        "base_url": base_url
+        "base_url": base_url,
+        "access_key_id": access_key_id,
+        "secret_access_key": secret_access_key
     }
 
     with open(filename, "w") as file:

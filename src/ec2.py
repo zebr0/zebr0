@@ -2,7 +2,10 @@ import boto3
 
 import config
 
-client = boto3.client("ec2")
+client = boto3.client(service_name="ec2",
+                      region_name="eu-central-1",
+                      aws_access_key_id=config.access_key_id,
+                      aws_secret_access_key=config.secret_access_key)
 
 
 def describe_vpc(project, stage):
