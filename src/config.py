@@ -15,7 +15,8 @@ secret_access_key = parser.get("config", "secret_access_key", fallback="")
 
 
 def fetch_distribution(project):
-    return fetch(project, "distribution", default="ubuntu-bionic")
+    return fetch(project, "distribution",
+                 default='{"Filters": [{"Name": "name", "Values": ["ubuntu/images/hvm-ssd/ubuntu-bionic-*"]}], "Owners": ["099720109477"]}')
 
 
 def fetch_instance_type(project, stage):

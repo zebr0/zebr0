@@ -1,3 +1,5 @@
+import json
+
 import boto3
 
 import config
@@ -162,17 +164,8 @@ def create_tags(project, stage, resource_id):
     )
 
 
-def fetch_latest_image_id(distribution):
-    request = {
-        "ubuntu-xenial": {"Filters": [{"Name": "name",
-                                       "Values": ["ubuntu/images/hvm-ssd/ubuntu-xenial-*"]}],
-                          "Owners": ["099720109477"]},
-        "ubuntu-bionic": {"Filters": [{"Name": "name",
-                                       "Values": ["ubuntu/images/hvm-ssd/ubuntu-bionic-*"]}],
-                          "Owners": ["099720109477"]}
-    }
-
-    response = client.describe_images(**request.get(distribution))
+def fetch_latest_image_id(request_json):
+    response = client.describe_images(**json.loads(request_json))
     images = response.get("Images")
     images.sort(key=lambda image: image.get("CreationDate"), reverse=True)
     latest = images[0]
