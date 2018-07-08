@@ -1,84 +1,57 @@
 import boto3
 
-import config
 
-domain_name_key = "domain-name"
-client = boto3.client(service_name="route53", region_name="eu-central-1")  # TODO
+class Service:
+    def __init__(self, config_service):
+        self.config_service = config_service
+        self.resource_record_set = None
 
+        try:
+            self.domain_name = self.config_service.lookup("domain-name")
+            self.client = boto3.client(service_name="route53", region_name="eu-central-1")  # TODO
 
-def create_dns_entry_if_needed(project, stage, address):
-    try:
-        domain_name = config.lookup(project, stage, domain_name_key)
+            hosted_zones = self.client.list_hosted_zones_by_name(DNSName=self.domain_name, MaxItems="1").get("HostedZones")
+            if hosted_zones and hosted_zones[0].get("Name") == self.domain_name:
+                self.hosted_zone_id = hosted_zones[0].get("Id")
+                self.fqdn = ".".join([self.config_service.stage, self.config_service.project, self.domain_name])  # TODO
 
-        hosted_zone_id = fetch_hosted_zone_id(domain_name)
-        if not hosted_zone_id:
-            return
+                print("checking resource record set")
+                resource_record_sets = self.client.list_resource_record_sets(
+                    HostedZoneId=self.hosted_zone_id,
+                    StartRecordName=self.fqdn,
+                    StartRecordType="A",
+                    MaxItems="1"
+                ).get("ResourceRecordSets")
+                if resource_record_sets and resource_record_sets[0].get("Name") == self.fqdn:
+                    self.resource_record_set = resource_record_sets[0]
+            else:
+                print("no hosted zone was found in route53 for the '{}' domain, it needs to be created manually".format(self.domain_name))
+        except LookupError as error:
+            print("{}, skipping dns entry management".format(error))
 
-        fqdn = fetch_fqdn(project, stage, domain_name)
-        resource_record_set = fetch_resource_record_set(hosted_zone_id, fqdn)
-
-        if not resource_record_set:
+    def create_dns_entry_if_needed(self, address):
+        if not self.resource_record_set:
             print("resource record set not found, creating resource record set")
-            client.change_resource_record_sets(
-                HostedZoneId=hosted_zone_id,
+            self.client.change_resource_record_sets(
+                HostedZoneId=self.hosted_zone_id,
                 ChangeBatch={"Changes": [{
                     "Action": "CREATE",
                     "ResourceRecordSet": {
-                        "Name": fqdn,
+                        "Name": self.fqdn,
                         "Type": "A",
                         "TTL": 300,  # TODO
                         "ResourceRecords": [{"Value": address}]
                     }
                 }]}
             )
-    except LookupError as error:
-        print("{}, skipping dns entry creation".format(error))
 
-
-def destroy_dns_entry_if_needed(project, stage):
-    try:
-        domain_name = config.lookup(project, stage, domain_name_key)
-
-        hosted_zone_id = fetch_hosted_zone_id(domain_name)
-        if not hosted_zone_id:
-            return
-
-        fqdn = fetch_fqdn(project, stage, domain_name)
-        resource_record_set = fetch_resource_record_set(hosted_zone_id, fqdn)
-
-        if resource_record_set:
+    def destroy_dns_entry_if_needed(self):
+        if self.resource_record_set:
             print("resource record set found, destroying resource record set")
-            client.change_resource_record_sets(
-                HostedZoneId=hosted_zone_id,
+            self.client.change_resource_record_sets(
+                HostedZoneId=self.hosted_zone_id,
                 ChangeBatch={"Changes": [{
                     "Action": "DELETE",
-                    "ResourceRecordSet": resource_record_set
+                    "ResourceRecordSet": self.resource_record_set
                 }]}
             )
-    except LookupError:
-        pass
-
-
-def fetch_hosted_zone_id(domain_name):
-    hosted_zones = client.list_hosted_zones_by_name(DNSName=domain_name, MaxItems="1").get("HostedZones")
-    if hosted_zones and hosted_zones[0].get("Name") == domain_name:
-        return hosted_zones[0].get("Id")
-    else:
-        print("no hosted zone was found in route53 for the '{}' domain, it needs to be created manually".format(domain_name))
-
-
-def fetch_fqdn(project, stage, domain_name):
-    return ".".join([stage, project, domain_name])  # TODO
-
-
-def fetch_resource_record_set(hosted_zone_id, fqdn):
-    print("checking resource record set")
-
-    resource_record_sets = client.list_resource_record_sets(
-        HostedZoneId=hosted_zone_id,
-        StartRecordName=fqdn,
-        StartRecordType="A",
-        MaxItems="1"
-    ).get("ResourceRecordSets")
-
-    return resource_record_sets[0] if resource_record_sets and resource_record_sets[0].get("Name") == fqdn else None
