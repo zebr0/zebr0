@@ -3,10 +3,7 @@ import boto3
 import config
 
 domain_name_key = "domain-name"
-client = boto3.client(service_name="route53",
-                      region_name="eu-central-1",
-                      aws_access_key_id=config.access_key_id,
-                      aws_secret_access_key=config.secret_access_key)
+client = boto3.client(service_name="route53", region_name="eu-central-1")  # TODO
 
 
 def create_dns_entry_if_needed(project, stage, address):
