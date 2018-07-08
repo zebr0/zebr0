@@ -9,30 +9,17 @@ default_path = "/etc/" + default_filename
 parser = configparser.ConfigParser()
 parser.read([default_path, default_filename])
 
-base_url = parser.get("config", "base_url", fallback="https://raw.githubusercontent.com/zebr0/zebr0-files/master")
+base_url = parser.get("config", "base_url", fallback="https://raw.githubusercontent.com/zebr0/zebr0-aws-config/master")
 
 
-def fetch_distribution(project):
-    return fetch(project, "distribution",
-                 default='{"Filters": [{"Name": "name", "Values": ["ubuntu/images/hvm-ssd/ubuntu-bionic-*"]}], "Owners": ["099720109477"]}')
-
-
-def fetch_instance_type(project, stage):
-    return fetch(project, stage, "instance-type", default="t2.micro")
-
-
-def fetch_network_cidr(project, stage):
-    return fetch(project, stage, "network-cidr", default="192.168.0.0/24")
-
-
-def fetch(*args, default=None):
-    key = "/".join(args)
-    response = requests.get(base_url + "/" + key)
-    if response.ok:
-        return response.text.strip()
-    elif default:
-        print("missing configuration key: '{}', using default value: '{}'".format(key, default))
-        return default
+def lookup(project, stage, key):
+    for path in [[base_url, project, stage, key],
+                 [base_url, project, key],
+                 [base_url, key]]:
+        response = requests.get("/".join(path))
+        if response.ok:
+            return response.text.strip()
+    raise LookupError("key '{}' not found anywhere for project '{}', stage '{}' in '{}'".format(key, project, stage, base_url))
 
 
 def edit_config(filename):

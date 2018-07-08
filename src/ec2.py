@@ -68,7 +68,7 @@ def create_vpc_if_needed(project, stage):
 
     if not vpc:
         print("vpc not found, creating vpc")
-        network_cidr = config.fetch_network_cidr(project, stage)
+        network_cidr = config.lookup(project, stage, "network-cidr")
         create_vpc = client.create_vpc(CidrBlock=network_cidr)
         vpc_id = create_vpc.get("Vpc").get("VpcId")
         client.get_waiter("vpc_exists").wait(VpcIds=[vpc_id])
@@ -95,7 +95,7 @@ def create_subnet_if_needed(project, stage, vpc_id):
 
     if not subnet:
         print("subnet not found, creating subnet")
-        network_cidr = config.fetch_network_cidr(project, stage)
+        network_cidr = config.lookup(project, stage, "network-cidr")
         create_subnet = client.create_subnet(CidrBlock=network_cidr, VpcId=vpc_id)
         subnet_id = create_subnet.get("Subnet").get("SubnetId")
         create_tags(project, stage, subnet_id)
@@ -123,11 +123,11 @@ def create_instance_if_needed(project, stage, subnet_id):
     if not instance:
         print("instance not found, creating instance")
         run_instances = client.run_instances(
-            ImageId=fetch_latest_image_id(config.fetch_distribution(project)),
+            ImageId=lookup_latest_image_id(project, stage),
             MinCount=1,
             MaxCount=1,
             KeyName="keypair",  # TODO
-            InstanceType=config.fetch_instance_type(project, stage),
+            InstanceType=config.lookup(project, stage, "instance-type"),
             SubnetId=subnet_id
         )
         instance_id = run_instances.get("Instances")[0].get("InstanceId")
@@ -161,8 +161,8 @@ def create_tags(project, stage, resource_id):
     )
 
 
-def fetch_latest_image_id(request_json):
-    response = client.describe_images(**json.loads(request_json))
+def lookup_latest_image_id(project, stage):
+    response = client.describe_images(**json.loads(config.lookup(project, stage, "image")))
     images = response.get("Images")
     images.sort(key=lambda image: image.get("CreationDate"), reverse=True)
     latest = images[0]

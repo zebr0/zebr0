@@ -7,55 +7,56 @@ client = boto3.client(service_name="route53", region_name="eu-central-1")  # TOD
 
 
 def create_dns_entry_if_needed(project, stage, address):
-    domain_name = config.fetch(domain_name_key)
-    if not domain_name:
-        print("missing configuration key '{}', skipping dns entry creation".format(domain_name_key))
-        return
+    try:
+        domain_name = config.lookup(project, stage, domain_name_key)
 
-    hosted_zone_id = fetch_hosted_zone_id(domain_name)
-    if not hosted_zone_id:
-        return
+        hosted_zone_id = fetch_hosted_zone_id(domain_name)
+        if not hosted_zone_id:
+            return
 
-    fqdn = fetch_fqdn(project, stage, domain_name)
-    resource_record_set = fetch_resource_record_set(hosted_zone_id, fqdn)
+        fqdn = fetch_fqdn(project, stage, domain_name)
+        resource_record_set = fetch_resource_record_set(hosted_zone_id, fqdn)
 
-    if not resource_record_set:
-        print("resource record set not found, creating resource record set")
-        client.change_resource_record_sets(
-            HostedZoneId=hosted_zone_id,
-            ChangeBatch={"Changes": [{
-                "Action": "CREATE",
-                "ResourceRecordSet": {
-                    "Name": fqdn,
-                    "Type": "A",
-                    "TTL": 300,  # TODO
-                    "ResourceRecords": [{"Value": address}]
-                }
-            }]}
-        )
+        if not resource_record_set:
+            print("resource record set not found, creating resource record set")
+            client.change_resource_record_sets(
+                HostedZoneId=hosted_zone_id,
+                ChangeBatch={"Changes": [{
+                    "Action": "CREATE",
+                    "ResourceRecordSet": {
+                        "Name": fqdn,
+                        "Type": "A",
+                        "TTL": 300,  # TODO
+                        "ResourceRecords": [{"Value": address}]
+                    }
+                }]}
+            )
+    except LookupError as error:
+        print("{}, skipping dns entry creation".format(error))
 
 
 def destroy_dns_entry_if_needed(project, stage):
-    domain_name = config.fetch(domain_name_key)
-    if not domain_name:
-        return
+    try:
+        domain_name = config.lookup(project, stage, domain_name_key)
 
-    hosted_zone_id = fetch_hosted_zone_id(domain_name)
-    if not hosted_zone_id:
-        return
+        hosted_zone_id = fetch_hosted_zone_id(domain_name)
+        if not hosted_zone_id:
+            return
 
-    fqdn = fetch_fqdn(project, stage, domain_name)
-    resource_record_set = fetch_resource_record_set(hosted_zone_id, fqdn)
+        fqdn = fetch_fqdn(project, stage, domain_name)
+        resource_record_set = fetch_resource_record_set(hosted_zone_id, fqdn)
 
-    if resource_record_set:
-        print("resource record set found, destroying resource record set")
-        client.change_resource_record_sets(
-            HostedZoneId=hosted_zone_id,
-            ChangeBatch={"Changes": [{
-                "Action": "DELETE",
-                "ResourceRecordSet": resource_record_set
-            }]}
-        )
+        if resource_record_set:
+            print("resource record set found, destroying resource record set")
+            client.change_resource_record_sets(
+                HostedZoneId=hosted_zone_id,
+                ChangeBatch={"Changes": [{
+                    "Action": "DELETE",
+                    "ResourceRecordSet": resource_record_set
+                }]}
+            )
+    except LookupError:
+        pass
 
 
 def fetch_hosted_zone_id(domain_name):
