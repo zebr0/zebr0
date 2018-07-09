@@ -22,12 +22,19 @@ def edit_config(filename):
     subprocess.call(["/usr/bin/editor", filename])
 
 
-class Service:  # TODO : map of keys already looked up
+class Service:
     def __init__(self, project, stage):
         self.project = project
         self.stage = stage
 
+        self.cache = {}
+
     def lookup(self, key):
+        if not self.cache.get(key):
+            self.cache[key] = self.remote_lookup(key)
+        return self.cache.get(key)
+
+    def remote_lookup(self, key):
         for path in [[base_url, self.project, self.stage, key],
                      [base_url, self.project, key],
                      [base_url, key]]:
