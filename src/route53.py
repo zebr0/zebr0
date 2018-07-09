@@ -8,7 +8,7 @@ class Service:
 
         try:
             self.domain_name = self.config_service.lookup("domain-name")
-            self.client = boto3.client(service_name="route53", region_name="eu-central-1")  # TODO
+            self.client = boto3.client(service_name="route53", region_name=self.config_service.lookup("region"))
 
             hosted_zones = self.client.list_hosted_zones_by_name(DNSName=self.domain_name, MaxItems="1").get("HostedZones")
             if hosted_zones and hosted_zones[0].get("Name") == self.domain_name:
@@ -39,7 +39,7 @@ class Service:
                     "ResourceRecordSet": {
                         "Name": self.fqdn,
                         "Type": "A",
-                        "TTL": 300,  # TODO
+                        "TTL": int(self.config_service.lookup("dns-record-ttl")),
                         "ResourceRecords": [{"Value": address}]
                     }
                 }]}

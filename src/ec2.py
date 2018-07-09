@@ -7,7 +7,7 @@ class Service:
     def __init__(self, config_service):
         self.config_service = config_service
 
-        self.client = boto3.client(service_name="ec2", region_name="eu-central-1")  # TODO
+        self.client = boto3.client(service_name="ec2", region_name=self.config_service.lookup("region"))
         self.default_filters = [{"Name": "tag:project", "Values": [self.config_service.project]},
                                 {"Name": "tag:stage", "Values": [self.config_service.stage]}]
 
