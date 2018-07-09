@@ -1,7 +1,15 @@
 import configparser
+import logging
 import subprocess
+import sys
 
 import requests
+
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setFormatter(logging.Formatter("{asctime} | {levelname:<7.7} | {name:<25.25} | {message}", style="{"))
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+root_logger.addHandler(stream_handler)
 
 default_filename = "zebr0-aws.conf"
 default_path = "/etc/" + default_filename
@@ -23,11 +31,18 @@ def edit_config(filename):
 
 
 class Service:
-    def __init__(self, project, stage):
+    def __init__(self, project, stage, debug):
         self.project = project
         self.stage = stage
 
+        self.logger = logging.getLogger("zebr0-aws.config.service")
         self.cache = {}
+
+        if debug:
+            root_logger.setLevel(logging.DEBUG)
+        self.logger.info("base_url: %s", base_url)
+        self.logger.info("project: %s", project)
+        self.logger.info("stage: %s", stage)
 
     def lookup(self, key):
         if not self.cache.get(key):
@@ -35,6 +50,7 @@ class Service:
         return self.cache.get(key)
 
     def remote_lookup(self, key):
+        self.logger.info("looking for key '%s' in remote repository", key)
         for path in [[base_url, self.project, self.stage, key],
                      [base_url, self.project, key],
                      [base_url, key]]:
