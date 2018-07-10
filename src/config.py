@@ -3,6 +3,7 @@ import logging
 import subprocess
 import sys
 
+import jinja2
 import requests
 
 stream_handler = logging.StreamHandler(sys.stdout)
@@ -56,5 +57,5 @@ class Service:
                      [base_url, key]]:
             response = requests.get("/".join(path))
             if response.ok:
-                return response.text.strip()
+                return jinja2.Template(response.text.strip()).render(project=self.project, stage=self.stage)
         raise LookupError("key '{}' not found anywhere for project '{}', stage '{}' in '{}'".format(key, self.project, self.stage, base_url))

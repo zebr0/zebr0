@@ -127,6 +127,7 @@ class Service:
         if not instance:
             image_id = self.lookup_latest_image_id()
             instance_type = self.config_service.lookup("instance-type")
+            user_data = self.config_service.lookup("user-data")
 
             self.logger.info("creating instance")
             run_instances = self.client.run_instances(
@@ -135,7 +136,8 @@ class Service:
                 MaxCount=1,
                 KeyName="keypair",  # TODO
                 InstanceType=instance_type,
-                SubnetId=subnet_id
+                SubnetId=subnet_id,
+                UserData=user_data
             )
             instance_id = run_instances.get("Instances")[0].get("InstanceId")
             self.client.get_waiter("instance_running").wait(InstanceIds=[instance_id])
