@@ -2,6 +2,7 @@ import json
 import logging
 
 import boto3
+import jinja2
 
 
 class Service:
@@ -137,7 +138,7 @@ class Service:
                 KeyName="keypair",  # TODO
                 InstanceType=instance_type,
                 SubnetId=subnet_id,
-                UserData=user_data
+                UserData=jinja2.Template(user_data).render(project=self.config_service.project, stage=self.config_service.stage)
             )
             instance_id = run_instances.get("Instances")[0].get("InstanceId")
             self.client.get_waiter("instance_running").wait(InstanceIds=[instance_id])

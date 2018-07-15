@@ -2,16 +2,17 @@ import configparser
 import logging
 import subprocess
 
-import jinja2
 import requests
 
-default_filename = "zebr0-aws.conf"
+# TODO extract into its own library
+
+default_filename = "zebr0.conf"
 default_path = "/etc/" + default_filename
 
 parser = configparser.ConfigParser()
 parser.read([default_path, default_filename])
 
-base_url = parser.get("config", "base_url", fallback="https://raw.githubusercontent.com/zebr0/zebr0-aws-config/master")
+base_url = parser.get("config", "base_url", fallback="https://raw.githubusercontent.com/zebr0/zebr0-config/master")
 
 
 def edit_config(filename):
@@ -29,7 +30,7 @@ class Service:
         self.project = project
         self.stage = stage
 
-        self.logger = logging.getLogger("zebr0-aws.config.service")
+        self.logger = logging.getLogger("zebr0.config.service")
         self.cache = {}
 
         self.logger.info("base_url: %s", base_url)
@@ -43,10 +44,12 @@ class Service:
 
     def remote_lookup(self, key):
         self.logger.info("looking for key '%s' in remote repository", key)
+
         for path in [[base_url, self.project, self.stage, key],
                      [base_url, self.project, key],
                      [base_url, key]]:
             response = requests.get("/".join(path))
             if response.ok:
-                return jinja2.Template(response.text.strip()).render(project=self.project, stage=self.stage)
+                return response.text.strip()
+
         raise LookupError("key '{}' not found anywhere for project '{}', stage '{}' in '{}'".format(key, self.project, self.stage, base_url))
