@@ -10,7 +10,7 @@ class Service:
 
         self.logger = logging.getLogger("zebr0-aws.ec2.service")
 
-        region = self.config_service.lookup("region")
+        region = self.config_service.lookup("aws-region")
         self.logger.info("creating ec2 client")
         self.client = boto3.client(service_name="ec2", region_name=region)
 
@@ -52,7 +52,7 @@ class Service:
         vpc = self.describe_vpc()
 
         if not vpc:
-            network_cidr = self.config_service.lookup("network-cidr")
+            network_cidr = self.config_service.lookup("vm-network-cidr")
 
             self.logger.info("creating vpc")
             create_vpc = self.client.create_vpc(CidrBlock=network_cidr)
@@ -82,7 +82,7 @@ class Service:
         subnet = self.describe_subnet()
 
         if not subnet:
-            network_cidr = self.config_service.lookup("network-cidr")
+            network_cidr = self.config_service.lookup("vm-network-cidr")
 
             self.logger.info("creating subnet")
             create_subnet = self.client.create_subnet(CidrBlock=network_cidr, VpcId=vpc_id)
@@ -111,7 +111,7 @@ class Service:
             self.client.create_route(DestinationCidrBlock="0.0.0.0/0", GatewayId=internet_gateway_id, RouteTableId=route_tables[0].get("RouteTableId"))
 
     def lookup_latest_image_id(self):
-        image = self.config_service.lookup("image")
+        image = self.config_service.lookup("aws-ami-criteria")
 
         self.logger.info("checking latest image")
         response = self.client.describe_images(**json.loads(image))
@@ -126,8 +126,8 @@ class Service:
 
         if not instance:
             image_id = self.lookup_latest_image_id()
-            instance_type = self.config_service.lookup("instance-type")
-            user_data = self.config_service.lookup("user-data")
+            instance_type = self.config_service.lookup("aws-instance-type")
+            user_data = self.config_service.lookup("vm-user-data")
 
             self.logger.info("creating instance")
             run_instances = self.client.run_instances(

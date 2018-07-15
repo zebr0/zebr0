@@ -11,7 +11,7 @@ class Service:
         self.resource_record_set = None
 
         try:
-            region = self.config_service.lookup("region")
+            region = self.config_service.lookup("aws-region")
             self.logger.info("creating route53 client")
             self.client = boto3.client(service_name="route53", region_name=region)
 
