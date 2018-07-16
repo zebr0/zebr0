@@ -9,7 +9,7 @@ class Service:
     def __init__(self, config_service):
         self.config_service = config_service
 
-        self.logger = logging.getLogger("zebr0-aws.ec2.service")
+        self.logger = logging.getLogger("zebr0-aws.ec2")
 
         region = self.config_service.lookup("aws-region")
         self.logger.info("creating ec2 client")

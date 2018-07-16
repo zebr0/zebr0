@@ -7,7 +7,7 @@ class Service:
     def __init__(self, config_service):
         self.config_service = config_service
 
-        self.logger = logging.getLogger("zebr0-aws.route53.service")
+        self.logger = logging.getLogger("zebr0-aws.route53")
         self.resource_record_set = None
 
         try:
