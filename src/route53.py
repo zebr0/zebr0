@@ -4,24 +4,24 @@ import boto3
 
 
 class Service:
-    def __init__(self, config_service):
-        self.config_service = config_service
+    def __init__(self, config):
+        self.config = config
 
         self.logger = logging.getLogger("zebr0-aws.route53")
         self.resource_record_set = None
 
         try:
-            region = self.config_service.lookup("aws-region")
+            region = self.config.lookup("aws-region")
             self.logger.info("creating route53 client")
             self.client = boto3.client(service_name="route53", region_name=region)
 
-            self.domain_name = self.config_service.lookup("domain-name")
+            self.domain_name = self.config.lookup("domain-name")
 
             self.logger.info("checking hosted zone")
             hosted_zones = self.client.list_hosted_zones_by_name(DNSName=self.domain_name, MaxItems="1").get("HostedZones")
             if hosted_zones and hosted_zones[0].get("Name") == self.domain_name:
                 self.hosted_zone_id = hosted_zones[0].get("Id")
-                self.fqdn = ".".join([self.config_service.stage, self.config_service.project, self.domain_name])  # TODO
+                self.fqdn = ".".join([self.config.stage, self.config.project, self.domain_name])  # TODO
 
                 self.logger.info("checking resource record set")
                 resource_record_sets = self.client.list_resource_record_sets(
@@ -39,7 +39,7 @@ class Service:
 
     def create_dns_entry_if_needed(self, address):
         if not self.resource_record_set:
-            ttl = int(self.config_service.lookup("dns-record-ttl"))
+            ttl = int(self.config.lookup("dns-record-ttl"))
 
             self.logger.info("creating resource record set")
             self.client.change_resource_record_sets(
