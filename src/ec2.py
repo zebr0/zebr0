@@ -6,17 +6,17 @@ import jinja2
 
 
 class Service:
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, zebr0_service):
+        self.zebr0_service = zebr0_service
 
         self.logger = logging.getLogger("zebr0-aws.ec2")
 
-        region = self.config.lookup("aws-region")
+        region = self.zebr0_service.lookup("aws-region")
         self.logger.info("creating ec2 client")
         self.client = boto3.client(service_name="ec2", region_name=region)
 
-        self.default_filters = [{"Name": "tag:project", "Values": [self.config.project]},
-                                {"Name": "tag:stage", "Values": [self.config.stage]}]
+        self.default_filters = [{"Name": "tag:project", "Values": [self.zebr0_service.project]},
+                                {"Name": "tag:stage", "Values": [self.zebr0_service.stage]}]
 
     def describe_vpc(self):
         self.logger.info("checking vpc")
@@ -46,14 +46,14 @@ class Service:
 
     def create_tags(self, resource_id):
         self.logger.info("updating resource tags")
-        self.client.create_tags(Resources=[resource_id], Tags=[{"Key": "project", "Value": self.config.project},
-                                                               {"Key": "stage", "Value": self.config.stage}])
+        self.client.create_tags(Resources=[resource_id], Tags=[{"Key": "project", "Value": self.zebr0_service.project},
+                                                               {"Key": "stage", "Value": self.zebr0_service.stage}])
 
     def create_vpc_if_needed(self):
         vpc = self.describe_vpc()
 
         if not vpc:
-            network_cidr = self.config.lookup("vm-network-cidr")
+            network_cidr = self.zebr0_service.lookup("vm-network-cidr")
 
             self.logger.info("creating vpc")
             create_vpc = self.client.create_vpc(CidrBlock=network_cidr)
@@ -83,7 +83,7 @@ class Service:
         subnet = self.describe_subnet()
 
         if not subnet:
-            network_cidr = self.config.lookup("vm-network-cidr")
+            network_cidr = self.zebr0_service.lookup("vm-network-cidr")
 
             self.logger.info("creating subnet")
             create_subnet = self.client.create_subnet(CidrBlock=network_cidr, VpcId=vpc_id)
@@ -112,7 +112,7 @@ class Service:
             self.client.create_route(DestinationCidrBlock="0.0.0.0/0", GatewayId=internet_gateway_id, RouteTableId=route_tables[0].get("RouteTableId"))
 
     def lookup_latest_image_id(self):
-        ami_criteria = self.config.lookup("aws-ami-criteria")
+        ami_criteria = self.zebr0_service.lookup("aws-ami-criteria")
 
         self.logger.info("checking latest image")
         response = self.client.describe_images(**json.loads(ami_criteria))
@@ -127,8 +127,8 @@ class Service:
 
         if not instance:
             image_id = self.lookup_latest_image_id()
-            instance_type = self.config.lookup("aws-instance-type")
-            user_data = self.config.lookup("vm-user-data")
+            instance_type = self.zebr0_service.lookup("aws-instance-type")
+            user_data = self.zebr0_service.lookup("vm-user-data")
 
             self.logger.info("creating instance")
             run_instances = self.client.run_instances(
@@ -138,7 +138,7 @@ class Service:
                 KeyName="keypair",  # TODO
                 InstanceType=instance_type,
                 SubnetId=subnet_id,
-                UserData=jinja2.Template(user_data).render(project=self.config.project, stage=self.config.stage)
+                UserData=jinja2.Template(user_data).render(url=self.zebr0_service.url, project=self.zebr0_service.project, stage=self.zebr0_service.stage)
             )
             instance_id = run_instances.get("Instances")[0].get("InstanceId")
             self.client.get_waiter("instance_running").wait(InstanceIds=[instance_id])
