@@ -21,7 +21,7 @@ class Service:
             hosted_zones = self.client.list_hosted_zones_by_name(DNSName=self.domain_name, MaxItems="1").get("HostedZones")
             if hosted_zones and hosted_zones[0].get("Name") == self.domain_name:
                 self.hosted_zone_id = hosted_zones[0].get("Id")
-                self.fqdn = ".".join([self.zebr0_service.stage, self.zebr0_service.project, self.domain_name])  # TODO
+                self.fqdn = self.zebr0_service.lookup("fqdn")
 
                 self.logger.info("checking resource record set")
                 resource_record_sets = self.client.list_resource_record_sets(
