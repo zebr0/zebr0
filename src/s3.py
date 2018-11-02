@@ -31,10 +31,5 @@ class Service:
             self.logger.info("creating bucket")
             self.client.create_bucket(
                 Bucket=self.bucket_name,
-                CreateBucketConfiguration={'LocationConstraint': self.region}
+                CreateBucketConfiguration={"LocationConstraint": self.region}
             )
-
-    def destroy_bucket_if_needed(self):
-        if self.head_bucket():
-            self.logger.info("destroying bucket")
-            self.client.delete_bucket(Bucket=self.bucket_name)
