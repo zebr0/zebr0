@@ -53,7 +53,7 @@ class Service:
         vpc = self.describe_vpc()
 
         if not vpc:
-            network_cidr = self.zebr0_service.lookup("vm-network-cidr")
+            network_cidr = self.zebr0_service.lookup("aws-network-cidr")
 
             self.logger.info("creating vpc")
             create_vpc = self.client.create_vpc(CidrBlock=network_cidr)
@@ -83,7 +83,7 @@ class Service:
         subnet = self.describe_subnet()
 
         if not subnet:
-            network_cidr = self.zebr0_service.lookup("vm-network-cidr")
+            network_cidr = self.zebr0_service.lookup("aws-network-cidr")
 
             self.logger.info("creating subnet")
             create_subnet = self.client.create_subnet(CidrBlock=network_cidr, VpcId=vpc_id)
@@ -128,7 +128,7 @@ class Service:
         if not instance:
             image_id = self.lookup_latest_image_id()
             instance_type = self.zebr0_service.lookup("aws-instance-type")
-            user_data = self.zebr0_service.lookup("vm-user-data")
+            user_data = self.zebr0_service.lookup("aws-user-data")
 
             self.logger.info("creating instance")
             run_instances = self.client.run_instances(
