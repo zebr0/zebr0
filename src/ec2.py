@@ -113,32 +113,35 @@ class Service:
             self.logger.info("adding outbound route")
             self.client.create_route(DestinationCidrBlock="0.0.0.0/0", GatewayId=internet_gateway_id, RouteTableId=route_tables[0].get("RouteTableId"))
 
-    def lookup_latest_image_id(self):
+    def lookup_latest_image(self):
         ami_criteria = self.zebr0_service.lookup("aws-ami-criteria")
 
         self.logger.info("checking latest image")
         response = self.client.describe_images(**json.loads(ami_criteria))
         images = response.get("Images")
         images.sort(key=lambda image: image.get("CreationDate"), reverse=True)
-        latest = images[0]
 
-        return latest.get("ImageId")
+        return images[0]
 
     def create_instance_if_needed(self, subnet_id):
         instance = self.describe_instance()
 
         if not instance:
-            image_id = self.lookup_latest_image_id()
+            image = self.lookup_latest_image()
             instance_type = self.zebr0_service.lookup("aws-instance-type")
             user_data = self.zebr0_service.lookup("aws-user-data")
 
             self.logger.info("creating instance")
             run_instances = self.client.run_instances(
-                ImageId=image_id,
+                ImageId=image.get("ImageId"),
                 MinCount=1,
                 MaxCount=1,
                 KeyName="keypair",  # TODO
                 InstanceType=instance_type,
+                BlockDeviceMappings=[{
+                    "DeviceName": image.get("RootDeviceName"),
+                    "Ebs": {"VolumeSize": int(self.zebr0_service.lookup("aws-volume-size"))}
+                }],
                 SubnetId=subnet_id,
                 UserData=jinja2.Template(user_data).render(url=self.zebr0_service.url, project=self.zebr0_service.project, stage=self.zebr0_service.stage)
             )
