@@ -70,6 +70,8 @@ class Service:
                 IpPermissions=[
                     {"FromPort": 80, "ToPort": 80, "IpProtocol": "tcp", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]},
                     {"FromPort": 443, "ToPort": 443, "IpProtocol": "tcp", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]},
+                    {"FromPort": 2501, "ToPort": 2501, "IpProtocol": "tcp", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]},
+                    {"FromPort": 2502, "ToPort": 2502, "IpProtocol": "tcp", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]},
                     {"FromPort": -1, "ToPort": -1, "IpProtocol": "icmp", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]},
                     {"FromPort": 22, "ToPort": 22, "IpProtocol": "tcp", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}  # TODO
                 ]
