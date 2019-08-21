@@ -7,10 +7,8 @@ import jinja2
 import z0
 
 logger = logging.getLogger("zebr0-aws.ec2")
-
-region = z0.service.lookup("aws-region")
 logger.info("creating ec2 client")
-client = boto3.client(service_name="ec2", region_name=region)
+client = boto3.client(service_name="ec2", region_name=z0.service.lookup("aws-region"))
 
 default_filters = [{"Name": "tag:project", "Values": [z0.service.project]},
                    {"Name": "tag:stage", "Values": [z0.service.stage]}]
