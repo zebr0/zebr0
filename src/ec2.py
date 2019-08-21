@@ -4,6 +4,7 @@ import logging
 import boto3
 import jinja2
 
+import iam
 import z0
 
 logger = logging.getLogger("zebr0-aws.ec2")
@@ -133,9 +134,12 @@ def create_instance_if_needed(subnet_id):
     instance = describe_instance()
 
     if not instance:
+        iam.delete_old_access_keys()
+        access_key = iam.create_access_key()
+
         image = lookup_latest_image()
         instance_type = z0.service.lookup("aws-instance-type")
-        user_data = z0.service.lookup("aws-user-data")
+        user_data = z0.service.lookup("aws-user-data", render=False)  # TODO
 
         logger.info("creating instance")
         run_instances = client.run_instances(
@@ -149,7 +153,12 @@ def create_instance_if_needed(subnet_id):
                 "Ebs": {"VolumeSize": int(z0.service.lookup("aws-volume-size"))}
             }],
             SubnetId=subnet_id,
-            UserData=jinja2.Template(user_data).render(url=z0.service.url, project=z0.service.project, stage=z0.service.stage)
+            UserData=jinja2.Template(user_data).render(
+                url=z0.service.url,
+                project=z0.service.project,
+                stage=z0.service.stage,
+                aws_access_key_id=access_key.get("AccessKeyId"),
+                aws_secret_access_key=access_key.get("SecretAccessKey"))
         )
         instance_id = run_instances.get("Instances")[0].get("InstanceId")
         client.get_waiter("instance_running").wait(InstanceIds=[instance_id])
