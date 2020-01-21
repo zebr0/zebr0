@@ -27,9 +27,10 @@ def describe_subnet():
     return subnets[0] if subnets else None
 
 
-def describe_instance():
+def describe_instance(lineage):
     logger.info("checking instance")
-    filters = default_filters + [{"Name": "instance-state-name", "Values": ["pending", "running", "stopping", "stopped"]}]
+    filters = default_filters + [{"Name": "instance-state-name", "Values": ["pending", "running", "stopping", "stopped"]},
+                                 {"Name": "tag:lineage", "Values": [lineage]}]
     reservations = client.describe_instances(Filters=filters).get("Reservations")
     return reservations[0].get("Instances")[0] if reservations else None
 
@@ -40,16 +41,20 @@ def describe_internet_gateway():
     return internet_gateways[0] if internet_gateways else None
 
 
-def describe_address():
+def describe_address(lineage):
     logger.info("checking address")
-    addresses = client.describe_addresses(Filters=default_filters).get("Addresses")
+    filters = default_filters + [{"Name": "tag:lineage", "Values": [lineage]}]
+    addresses = client.describe_addresses(Filters=filters).get("Addresses")
     return addresses[0] if addresses else None
 
 
-def create_tags(resource_id):
+def create_tags(resource_id, lineage=None):
     logger.info("updating resource tags")
-    client.create_tags(Resources=[resource_id], Tags=[{"Key": "project", "Value": z0.service.project},
-                                                      {"Key": "stage", "Value": z0.service.stage}])
+    tags = [{"Key": "project", "Value": z0.service.project},
+            {"Key": "stage", "Value": z0.service.stage}]
+    if lineage:
+        tags.append({"Key": "lineage", "Value": lineage})
+    client.create_tags(Resources=[resource_id], Tags=tags)
 
 
 def create_vpc_if_needed():
@@ -130,8 +135,8 @@ def lookup_latest_image():
     return images[0]
 
 
-def create_instance_if_needed(subnet_id):
-    instance = describe_instance()
+def create_instance_if_needed(subnet_id, lineage):
+    instance = describe_instance(lineage)
 
     if not instance:
         iam.delete_old_access_keys()
@@ -162,21 +167,21 @@ def create_instance_if_needed(subnet_id):
         )
         instance_id = run_instances.get("Instances")[0].get("InstanceId")
         client.get_waiter("instance_running").wait(InstanceIds=[instance_id])
-        create_tags(instance_id)
+        create_tags(instance_id, lineage)
 
         return instance_id
     else:
         return instance.get("InstanceId")
 
 
-def create_address_if_needed(instance_id):
-    address = describe_address()
+def create_address_if_needed(instance_id, lineage):
+    address = describe_address(lineage)
 
     if not address:
         logger.info("creating address")
         allocate_address = client.allocate_address()
         allocation_id = allocate_address.get("AllocationId")
-        create_tags(allocation_id)
+        create_tags(allocation_id, lineage)
 
         logger.info("associating address with instance")
         client.associate_address(AllocationId=allocation_id, InstanceId=instance_id)
@@ -186,8 +191,8 @@ def create_address_if_needed(instance_id):
         return address.get("PublicIp")
 
 
-def destroy_address_if_needed():
-    address = describe_address()
+def destroy_address_if_needed(lineage):
+    address = describe_address(lineage)
     if address:
         logger.info("disassociating address from instance")
         client.disassociate_address(AssociationId=address.get("AssociationId"))
@@ -196,8 +201,8 @@ def destroy_address_if_needed():
         client.release_address(AllocationId=address.get("AllocationId"))
 
 
-def destroy_instance_if_needed():
-    instance = describe_instance()
+def destroy_instance_if_needed(lineage):
+    instance = describe_instance(lineage)
     if instance:
         logger.info("destroying instance")
         instance_ids = {"InstanceIds": [instance.get("InstanceId")]}
