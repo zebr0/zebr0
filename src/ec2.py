@@ -28,7 +28,7 @@ def describe_subnet():
 
 
 def describe_instance(lineage):
-    logger.info("checking instance")
+    logger.info("checking " + lineage + " instance")
     filters = default_filters + [{"Name": "instance-state-name", "Values": ["pending", "running", "stopping", "stopped"]},
                                  {"Name": "tag:lineage", "Values": [lineage]}]
     reservations = client.describe_instances(Filters=filters).get("Reservations")
@@ -42,7 +42,7 @@ def describe_internet_gateway():
 
 
 def describe_address(lineage):
-    logger.info("checking address")
+    logger.info("checking " + lineage + " address")
     filters = default_filters + [{"Name": "tag:lineage", "Values": [lineage]}]
     addresses = client.describe_addresses(Filters=filters).get("Addresses")
     return addresses[0] if addresses else None

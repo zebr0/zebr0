@@ -1,1 +1,1 @@
-import zebr0_argparser = zebr0.ArgumentParser()_argparser.add_argument("command", choices=["create", "delete"])args = _argparser.parse_args()service = zebr0.Service(args)
+import zebr0_argparser = zebr0.ArgumentParser()_argparser.add_argument("command", choices=["create", "delete", "clone"])args = _argparser.parse_args()service = zebr0.Service(args)
